@@ -1,0 +1,82 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: waypipe
+base: core24
+confinement: classic
+summary: A proxy to remotely use Wayland protocol applications
+description: |
+  Waypipe proxies Wayland protocol applications, so that they can be used
+  remotely over an SSH connection.
+
+  Waypipe is licensed GPL-3.0-or-later (waypipe-c is MIT); this snap
+  redistributes the compiled upstream binary. The full license texts are
+  shipped in the snap as /snap/waypipe/current/LICENSE.GPLv3 and
+  /snap/waypipe/current/LICENSE.MIT.
+license: GPL-3.0-or-later
+# Snap version is set from the upstream source: <Cargo version>+<git short hash>
+adopt-info: waypipe
+
+lint:
+  ignore:
+    - classic
+
+plugs:
+  # Declares the runtime ffmpeg dependency and (via default-provider) makes
+  # snapd auto-install + auto-connect the ffmpeg-2404 provider so that
+  # /snap/ffmpeg-2404/current exists at runtime. Under classic confinement the
+  # content bind mount (target) is never created — classic snaps share the host
+  # mount namespace — so the app reads the provider directly (see apps env).
+  ffmpeg-2404:
+    interface: content
+    content: ffmpeg-2404
+    default-provider: ffmpeg-2404
+    target: $SNAP/ffmpeg-platform
+
+apps:
+  waypipe:
+    command: bin/waypipe
+    environment:
+      # Classic snaps run in the HOST mount namespace, so the content-interface
+      # bind mount at $SNAP/ffmpeg-platform is never created (content mounts are
+      # only applied inside a strict snap's private namespace). Read the provider
+      # snap's files directly at /snap/ffmpeg-2404/current, which a classic snap
+      # may do freely; the ffmpeg-2404 plug below only drives auto-install of the
+      # provider. Append ${LD_LIBRARY_PATH} so any other lib dirs still resolve.
+      LD_LIBRARY_PATH: /snap/ffmpeg-2404/current/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}
+
+parts:
+  waypipe:
+    plugin: rust
+    source: https://gitlab.freedesktop.org/mstoeckl/waypipe
+    source-type: git
+    after: []
+    build-snaps:
+      - ffmpeg-2404-sdk
+    build-packages:
+      - bindgen
+      - glslc
+      - liblz4-dev
+      - libclang-common-14-dev
+      - libzstd-dev
+      - libgbm-dev
+      - libclang1-14t64
+      - gcc
+      - libc6-dev
+    rust-no-default-features: true    rust-features:
+      - video
+      - dmabuf
+      - lz4
+      - zstd
+      - gbmfallback
+    build-environment:
+      - PKG_CONFIG_PATH: /snap/ffmpeg-2404-sdk/current/usr/lib/x86_64-linux-gnu/pkgconfig
+    override-build: |
+      craftctl default
+      strip --strip-all "$CRAFT_PART_INSTALL/bin/waypipe"
+      # Ship the upstream license texts with the binary (GPLv3-or-later for
+      # waypipe, MIT for waypipe-c) — required for source-compliance on
+      # redistribution.
+      install -m 0644 "$CRAFT_PART_SRC/LICENSE.GPLv3" "$CRAFT_PART_SRC/LICENSE.MIT" \
+        "$CRAFT_PART_INSTALL/"
+    stage-packages:
+      - liblz4-1
+      - libzstd1

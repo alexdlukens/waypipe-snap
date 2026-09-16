@@ -7,6 +7,12 @@ description: |
   Waypipe proxies Wayland protocol applications, so that they can be used
   remotely over an SSH connection.
 
+  This is a third-party snap build of upstream waypipe
+  (https://gitlab.freedesktop.org/mstoeckl/waypipe/), not produced,
+  maintained, or endorsed by the upstream author(s). Packaging issues
+  belong in this snap's repository; upstream bugs go to
+  https://gitlab.freedesktop.org/mstoeckl/waypipe/-/issues.
+
   Waypipe is licensed GPL-3.0-or-later (waypipe-c is MIT); this snap
   redistributes the compiled upstream binary. The full license texts are
   shipped in the snap as /snap/waypipe/current/LICENSE.GPLv3 and
@@ -61,7 +67,15 @@ parts:
       - libclang1-14t64
       - gcc
       - libc6-dev
-    rust-no-default-features: true    rust-features:
+    override-pull: |
+      craftctl default
+      # Snap version = upstream Cargo package version + git short hash,
+      # e.g. "0.11.2+a1ffdd8" — tracks the actual built source.
+      cargo_ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)"
+      git_hash="$(git rev-parse --short HEAD)"
+      craftctl set version="${cargo_ver}+${git_hash}"
+    rust-no-default-features: true
+    rust-features:
       - video
       - dmabuf
       - lz4

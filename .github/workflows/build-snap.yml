@@ -1,0 +1,35 @@
+name: Build snap
+
+on:
+  schedule:
+    # Weekly, Mondays 03:00 UTC
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-snap
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build waypipe snap
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Build snap
+        id: build
+        uses: canonical/action-build@v1
+
+      - name: Upload snap as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: waypipe-snap
+          path: ${{ steps.build.outputs.snap }}
+          if-no-files-found: error
+          retention-days: 30

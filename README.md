@@ -1,5 +1,9 @@
 # waypipe snap — third-party build
 
+> **AI-assisted:** This snap packaging (including this README) was
+> produced with the help of AI tools and is maintained by @alexdlukens.
+> Use at your own discretion.
+
 A third-party Snap package of
 [waypipe](https://gitlab.freedesktop.org/mstoeckl/waypipe/), a proxy for
 Wayland protocol applications so they can be used remotely over an SSH
